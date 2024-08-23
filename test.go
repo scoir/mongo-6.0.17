@@ -12,7 +12,7 @@ import (
 )
 
 const docCount = 4
-const fieldCount = 200
+const fieldCount = 165
 
 func main() {
 	execute(os.Getenv("MONGO_16_URI"))
@@ -49,12 +49,18 @@ func execute(uri string) {
 	if err != nil {
 		panic(err)
 	}
+	runAggregation(context.Background(), coll, fieldCount-1)
+	runAggregation(context.Background(), coll, fieldCount)
+	fmt.Println("finished")
+}
 
+func runAggregation(ctx context.Context, coll *mongo.Collection, count int) {
+	fmt.Println("aggregating with", count, "fields")
 	group := bson.M{
 		"_id": "$owner",
 	}
 
-	for i := range fieldCount {
+	for i := range count {
 		field := createExampleField(i)
 		group[field] = bson.M{
 			"$sum": fmt.Sprintf("$%s", field),
@@ -62,17 +68,18 @@ func execute(uri string) {
 	}
 	pipe := mongo.Pipeline{
 		bson.D{{
-			"$group", group,
+			Key:   "$group",
+			Value: group,
 		}},
 	}
-	fmt.Println("aggregating")
-	cursor, err := coll.Aggregate(context.Background(), pipe)
+	fmt.Println("running aggregation with", count, "fields")
+	cursor, err := coll.Aggregate(ctx, pipe)
 	if err != nil {
 		panic(err)
 	}
-	defer cursor.Close(context.Background())
+	defer cursor.Close(ctx)
 	cnt := 0
-	for cursor.Next(context.Background()) {
+	for cursor.Next(ctx) {
 		cnt++
 		var doc bson.M
 		err := cursor.Decode(&doc)
@@ -80,10 +87,8 @@ func execute(uri string) {
 			panic(err)
 		}
 		fmt.Println("found document", doc["_id"], "with owner", doc["owner"])
-		// fmt.Println(doc)
 	}
 	fmt.Println("found", cnt, "documents")
-	fmt.Println("finished")
 }
 
 func createExampleField(i int) string {
