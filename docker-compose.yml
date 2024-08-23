@@ -1,0 +1,20 @@
+services:
+  mongo6016:
+    container_name: mongo6016
+    image: mongo:6.0.16
+  mongo6017:
+    container_name: mongo6017
+    image: mongo:6.0.17
+  tests:
+    profiles:
+      - tests
+    container_name: tests
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - mongo6016
+      - mongo6017
+    environment:
+      - MONGO_16_URI=mongodb://mongo6016:27017
+      - MONGO_17_URI=mongodb://mongo6017:27017
