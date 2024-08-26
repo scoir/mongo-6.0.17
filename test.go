@@ -49,8 +49,13 @@ func execute(uri string) {
 	if err != nil {
 		panic(err)
 	}
+
+	// This first aggregation is just under the threshold and works as expected
 	runAggregation(context.Background(), coll, fieldCount-1)
+
+	// This aggregation goes over the $group byte limit and no longer works
 	runAggregation(context.Background(), coll, fieldCount)
+
 	fmt.Println("finished")
 }
 
